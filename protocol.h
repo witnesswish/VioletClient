@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #elif __WIN32
 #include <winsock2.h>
+#include <windows.h>
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #endif

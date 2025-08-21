@@ -37,11 +37,21 @@ jobs:
         host: windows
         target: desktop
       
-    - name: Configure and build
+    # - name: Configure and build
+    #   run: |
+    #     mkdir build/windows
+    #     cd build/windows
+    #     cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release ../..
+    #     cmake --build . --config Release
+
+    - name: Configure and build with Ninja
       run: |
         mkdir build/windows
         cd build/windows
-        cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release ../..
+        cmake -G "Ninja" ^
+          -DCMAKE_C_COMPILER=gcc ^
+          -DCMAKE_CXX_COMPILER=g++ ^
+          -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . --config Release
 
     - name: Verify files and Get Qt dependencies
