@@ -34,25 +34,6 @@ qt_add_executable(VioletClient
 
 )
 
-if (MINGW)
-    # 明确链接必要的 MinGW 库
-    target_link_libraries(VioletClient PRIVATE
-        Qt6::Core
-        Qt6::Widgets
-        mingw32
-        -static
-        -static-libgcc
-        -static-libstdc++
-    )
-
-    # 添加 Windows 子系统标志
-    if (NOT CONSOLE_BUILD)
-        target_link_options(VioletClient PRIVATE -mwindows)
-    else()
-        target_link_options(VioletClient PRIVATE -mconsole)
-    endif()
-endif()
-
 target_link_libraries(VioletClient
     PRIVATE
         Qt::Core
