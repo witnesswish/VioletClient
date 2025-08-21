@@ -5,6 +5,13 @@
 #include <arpa/inet.h>
 #elif __WIN32
 #include <winsock2.h>
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 #endif
 
 #include <vector>
@@ -13,6 +20,8 @@
 #include <string.h>
 #include <string>
 #include <QTcpSocket>
+
+
 
 #pragma pack(push, 1)
 struct VioletProtHeader {

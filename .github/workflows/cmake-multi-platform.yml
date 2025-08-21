@@ -18,42 +18,6 @@ env:
   ANDROID_SDK_PACKAGES: "platforms;android-33,build-tools;34.0.0,cmdline-tools;latest,platform-tools,ndk;$ANDROID_NDK_VERSION"
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-    - uses: actions/checkout@v4
-      
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential libgl1-mesa-dev
-        
-    - name: Set up Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: ${{ env.QT_VERSION }}
-        host: linux
-        target: desktop
-      
-    - name: Configure and build
-      run: |
-        mkdir -p build/linux
-        cd build/linux
-        cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ../..
-        cmake --build . --config Release --parallel $(nproc)
-        
-    - name: Varify files
-      run:
-        ls build/linux
-
-    - name: Release
-      uses: softprops/action-gh-release@v2.3.2
-      with:
-        tag_name: ${{ github.ref_name }}
-        files: build/linux/VioletClient
-
   build-windows:
     runs-on: windows-latest
     permissions:

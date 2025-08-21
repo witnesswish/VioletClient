@@ -19,7 +19,6 @@ qt_add_executable(VioletClient
     violetclient.cpp
     violetclient.h
     violetclient.ui
-    readme.md
     protocol.h
     protocol.cpp
     unlogincenter.h unlogincenter.cpp unlogincenter.ui
