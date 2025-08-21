@@ -47,7 +47,7 @@ jobs:
       run: |
         mkdir build/windows
         cd build/windows
-        cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ..
+        cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ../..
         cmake --build . --config Release
 
     - name: Verify files and Get Qt dependencies
