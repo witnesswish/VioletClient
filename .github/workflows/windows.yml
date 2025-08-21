@@ -1,0 +1,75 @@
+name: Build Project VioletClient on Windows
+
+on:
+  push:
+    #branches: [ master ]
+    tags: 
+      - "v*"
+  workflow_dispatch:
+
+env:
+  QT_VERSION: "6.9.0"
+  #ANDROID_SDK_VERSION: '19.0'
+  ANDROID_API: 23
+  ANDROID_NDK_VERSION: 26.1.10909125
+  ANDROID_ABI: armeabi-v7a
+  ANDROID_BUILD_TOOLS_VERSION: "34.0.0"
+  ANDROID_SDK_PACKAGES: "platforms;android-33,build-tools;34.0.0,cmdline-tools;latest,platform-tools,ndk;$ANDROID_NDK_VERSION"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up NSIS
+      shell: powershell
+      run: choco install nsis -y --no-progress
+      
+    - name: Set up Qt and MinGw
+      id: setup-qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: windows
+        arch: 'win64_mingw'
+        target: desktop
+        install-deps: true
+    
+    # - name: Configure and build
+    #   run: |
+    #     mkdir build/windows
+    #     cd build/windows
+    #     cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release ../..
+    #     cmake --build . --config Release
+
+    - name: Configure and build with Ninja
+      run: |
+        mkdir build/windows
+        cd build/windows
+        cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ../..
+        cmake --build . --config Release
+
+    - name: Verify files and Get Qt dependencies
+      shell: powershell
+      run: |
+        #$QT_BIN = "$env:QT_PATH/bin"
+        & "windeployqt.exe" `
+          --release `
+          --no-compiler-runtime `
+          --dir installer `
+          "build/windows/Release/VioletClient.exe"
+        Copy-Item "build/windows/Release/VioletClient.exe" installer
+        #Get-ChildItem -Path installer -Recurse
+
+    - name: Pack up installer
+      run: |
+        makensis -V4 MakeInstaller.nsi
+
+    - name: Release
+      uses: softprops/action-gh-release@v2.3.2
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: D:/a/VioletClient/VioletClient/VioletClientSetup64.exe

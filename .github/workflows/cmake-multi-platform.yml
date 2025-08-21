@@ -5,8 +5,7 @@ on:
     #branches: [ master ]
     tags: 
       - "v*"
-  #pull_request:
-    #branches: [ master ]
+  workflow_dispatch:
 
 env:
   QT_VERSION: "6.9.0"
@@ -48,10 +47,7 @@ jobs:
       run: |
         mkdir build/windows
         cd build/windows
-        cmake -G "Ninja" 
-          -DCMAKE_C_COMPILER=gcc 
-          -DCMAKE_CXX_COMPILER=g++ 
-          -DCMAKE_BUILD_TYPE=Release ..
+        cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ../..
         cmake --build . --config Release
 
     - name: Verify files and Get Qt dependencies
