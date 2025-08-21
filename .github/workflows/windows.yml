@@ -38,8 +38,14 @@ jobs:
       uses: seanmiddleditch/gha-setup-ninja@v3
 
     - name: Configure CMake
+      env:
+        CC: ${{ env.QT_DIR }}/../Tools/mingw1120_64/bin/gcc.exe
+        CXX: ${{ env.QT_DIR }}/../Tools/mingw1120_64/bin/g++.exe
       run: |
         cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}} -DCMAKE_MAKE_PROGRAM=ninja -G "Ninja" -DCMAKE_PREFIX_PATH="${{ env.QT_DIR }}/lib/cmake"
+
+    - name: Print Qt dir
+      run: echo ${{ env.QT_DIR }}
 
     - name: Build
       run: |
