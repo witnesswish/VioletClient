@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <QMessageBox>
 #include <QCloseEvent>
-#include <QTcpsocket>
+#include <QTcpSocket>
 #include <QStackedLayout>
 #include <QStandardPaths>
 #include <QDir>
