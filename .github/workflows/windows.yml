@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  QT_VERSION: 6.9.1
+  QT_VERSION: 6.5.0  # 修改为存在的Qt版本
   QT_HOST: windows
   QT_TARGET: desktop
   QT_ARCH: win64_mingw
@@ -39,6 +39,12 @@ jobs:
       run: |
         Add-Content $env:GITHUB_PATH "${{ env.QT_DIR }}/../Tools/mingw1120_64/bin"
 
+    - name: Install MinGW runtime libraries
+      shell: powershell
+      run: |
+        # 安装必要的运行时库
+        choco install mingw-w64-x86_64-dev -y
+
     - name: Configure CMake
       shell: powershell
       run: |
@@ -48,7 +54,9 @@ jobs:
           -G "Ninja" `
           -DCMAKE_PREFIX_PATH="${{ env.QT_DIR }}" `
           -DCMAKE_C_COMPILER=gcc.exe `
-          -DCMAKE_CXX_COMPILER=g++.exe
+          -DCMAKE_CXX_COMPILER=g++.exe `
+          -DCMAKE_CXX_STANDARD=17 `
+          -DQt6_DIR="${{ env.QT_DIR }}/lib/cmake/Qt6"
 
     - name: Print Qt dir
       shell: powershell
