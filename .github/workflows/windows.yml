@@ -59,14 +59,14 @@ jobs:
     - name: Verify files and Get Qt dependencies
       shell: powershell
       run: |
-        dir
+        dir build
         #$QT_BIN = "$env:QT_PATH/bin"
         & "D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\windeployqt.exe" `
           --release `
           --no-compiler-runtime `
           --dir installer `
-          "build/Release/VioletClient.exe"
-        Copy-Item "build/Release/VioletClient.exe" installer
+          "build/VioletClient.exe"
+        Copy-Item "build/VioletClient.exe" installer
         dir
         #Get-ChildItem -Path installer -Recurse
 
