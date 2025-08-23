@@ -42,8 +42,7 @@ jobs:
         mkdir -p build
         cd build
         rm -r -force *
-        dir ..\..\
-        dir C:\Qt\6.9.1\mingw_64\bin
+        #dir ..\..\Qt
         $env:PATH = "D:\a\VioletClient\Qt\Tools\mingw1310_64\bin;" + $env:PATH
         set PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64\bin;%PATH%
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
@@ -55,11 +54,11 @@ jobs:
       shell: powershell
       run: |
         #$QT_BIN = "$env:QT_PATH/bin"
-        & "windeployqt.exe" `
+        & "D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\windeployqt.exe" `
           --release `
           --no-compiler-runtime `
           --dir installer `
-          "build/Release/VioletClient.exe"
+          ".\VioletClient.exe"
         Copy-Item "build/Release/VioletClient.exe" installer
         dir
         #Get-ChildItem -Path installer -Recurse
