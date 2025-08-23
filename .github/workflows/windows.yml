@@ -42,26 +42,27 @@ jobs:
         mkdir -p build
         cd build
         rm -r -force *
-        dir ..\..\Qt\bin
-        dir D:/a/VioletClient/Qt/6.9.1/mingw_64/bin
+        dir D:\a\VioletClient\Qt\Tools
+        dir D:\a\VioletClient\Qt\Tools\mingw1310_64\bin
         exit 1
-        $env:PATH = "D:\a\VioletClient\Qt\6.9.1\mingw_64\bin;" + $env:PATH
-        #cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="D:\a\VioletClient\Qt\6.9.1\mingw_64" -DCMAKE_C_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\gcc.exe" -DCMAKE_CXX_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\g++.exe" -DCMAKE_MAKE_PROGRAM="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\mingw32-make.exe" -G "MinGW Makefiles" ..
-        #mingw32-make -j4
-        cmake --build . --config Release --parallel 4
+        $env:PATH = "D:\a\VioletClient\Qt\Tools\mingw1310_64\bin;" + $env:PATH
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
+        #cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="D:\a\VioletClient\Qt\6.9.1\mingw_64" -DCMAKE_C_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\gcc.exe" -DCMAKE_CXX_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\g++.exe" -DCMAKE_MAKE_PROGRAM="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\mingw32-make.exe" -G "MinGW Makefiles" ..
+        mingw32-make -j4
+        #cmake --build . --config Release --parallel 4
         Get-ChildItem -Path . -Recurse | Where-Object { $_.Name -ne "VioletClient.exe" } | Remove-Item -Recurse -Force
         dir
 
     - name: Verify files and Get Qt dependencies
       shell: powershell
       run: |
+        dir
         #$QT_BIN = "$env:QT_PATH/bin"
         & "D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\windeployqt.exe" `
           --release `
           --no-compiler-runtime `
           --dir installer `
-          ".\VioletClient.exe"
+          "build/Release/VioletClient.exe"
         Copy-Item "build/Release/VioletClient.exe" installer
         dir
         #Get-ChildItem -Path installer -Recurse
