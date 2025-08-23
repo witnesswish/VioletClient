@@ -36,6 +36,7 @@ jobs:
         host: windows
         target: desktop
         arch: win64_mingw
+        tools: 'tools_mingw1310'
         archives: 'qttools qtbase MinGW'
       
     - name: Configure and build
@@ -47,7 +48,6 @@ jobs:
         if (Test-Path "D:\a\VioletClient\Qt\Tools") {
           dir D:\a\VioletClient\Qt\Tools\mingw1310_64\bin
         }
-        exit 1
         $env:PATH = "D:\a\VioletClient\Qt\Tools\mingw1310_64\bin;" + $env:PATH
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
         #cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="D:\a\VioletClient\Qt\6.9.1\mingw_64" -DCMAKE_C_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\gcc.exe" -DCMAKE_CXX_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\g++.exe" -DCMAKE_MAKE_PROGRAM="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\mingw32-make.exe" -G "MinGW Makefiles" ..
