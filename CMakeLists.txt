@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
+
 project(VioletClient LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
@@ -9,7 +10,8 @@ set(RESOURCES
     resources.qrc
 )
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network Sql)
+#find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Sql)
 
 qt_standard_project_setup()
 
