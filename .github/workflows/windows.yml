@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  QT_VERSION: "6.9.0"
+  QT_VERSION: "6.9.1"
   #ANDROID_SDK_VERSION: '19.0'
   ANDROID_API: 23
   ANDROID_NDK_VERSION: 26.1.10909125
@@ -35,15 +35,20 @@ jobs:
         version: ${{ env.QT_VERSION }}
         host: windows
         target: desktop
+        arch: win64_mingw
       
     - name: Configure and build
       run: |
-        mkdir build/windows
-        cd build/windows
+        mkdir build
+        cd build
         Write-Host "QT_DIR: ${{ env.QT_DIR }}"
-        #cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release ../..
-        #cmake --build . --config Release
-        "C:\Qt\Tools\CMake_64\bin\cmake.exe" --build F:/Project/Qt/VioletClient/build/Desktop_Qt_6_9_1_MinGW_64_bit-Release --target all
+        $env:PATH = "C:\Qt\Tools\mingw1310_64\bin;" + $env:PATH
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
+        mingw32-make -j4
+        Get-ChildItem -Path . -Recurse | Where-Object { $_.Name -ne "VioletClient.exe" } | Remove-Item -Recurse -Force
+        C:\Qt\6.9.1\mingw_64\bin\windeployqt.exe .\VioletClient.exe
+        dir
+        echo ${{env.QT_DIR }}
 
     - name: Verify files and Get Qt dependencies
       shell: powershell
@@ -53,8 +58,9 @@ jobs:
           --release `
           --no-compiler-runtime `
           --dir installer `
-          "build/windows/Release/VioletClient.exe"
-        Copy-Item "build/windows/Release/VioletClient.exe" installer
+          "build/Release/VioletClient.exe"
+        Copy-Item "build/Release/VioletClient.exe" installer
+        dir
         #Get-ChildItem -Path installer -Recurse
 
     - name: Pack up installer
