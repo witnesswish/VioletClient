@@ -36,12 +36,14 @@ jobs:
         host: windows
         target: desktop
         arch: win64_mingw
+        archives: 'MinGW'
       
     - name: Configure and build
       run: |
         mkdir -p build
         cd build
         rm -r -force *
+        dir D:\a\VioletClient\Qt
         dir D:\a\VioletClient\Qt\Tools
         dir D:\a\VioletClient\Qt\Tools\mingw1310_64\bin
         exit 1
