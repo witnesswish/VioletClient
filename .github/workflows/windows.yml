@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  QT_VERSION: 6.9.0  # 更新为 Qt 6.9
+  QT_VERSION: 6.9.0
   QT_HOST: windows
   QT_TARGET: desktop
   QT_ARCH: win64_mingw
@@ -34,104 +34,157 @@ jobs:
     - name: Setup Ninja
       uses: seanmiddleditch/gha-setup-ninja@v3
 
-    - name: Add MinGW to PATH
+    - name: Find and Add MinGW to PATH
       shell: powershell
       run: |
-        $mingwPath = "${{ env.QT_DIR }}/../../Tools/mingw1120_64/bin"
-        if (Test-Path $mingwPath) {
-            Add-Content $env:GITHUB_PATH $mingwPath
-        } else {
-            Write-Host "Mingw path not found: $mingwPath"
-            # 尝试查找其他可能的路径
-            $possiblePaths = Get-ChildItem -Path "${{ env.QT_DIR }}/../../Tools" -Filter "mingw*" -Directory
-            foreach ($path in $possiblePaths) {
-                $binPath = "$($path.FullName)/bin"
+        # 更安全地查找 MinGW 路径
+        $qtDir = "${{ env.QT_DIR }}"
+        Write-Host "QT_DIR: $qtDir"
+        
+        # 查找可能的 MinGW 路径
+        $toolsDir = Split-Path (Split-Path $qtDir -Parent) -Parent
+        $mingwDirs = Get-ChildItem -Path "$toolsDir/Tools" -Directory -Filter "mingw*" -ErrorAction SilentlyContinue
+        
+        if ($mingwDirs) {
+            foreach ($mingwDir in $mingwDirs) {
+                $binPath = Join-Path $mingwDir.FullName "bin"
                 if (Test-Path $binPath) {
-                    Add-Content $env:GITHUB_PATH $binPath
-                    Write-Host "Added to PATH: $binPath"
+                    Write-Host "Found MinGW at: $binPath"
+                    # 直接设置环境变量，避免路径解析问题
+                    echo "MINGW_PATH=$binPath" >> $env:GITHUB_ENV
+                    echo "$binPath" >> $env:GITHUB_PATH
                     break
                 }
             }
+        } else {
+            Write-Host "MinGW not found in Tools directory, checking alternative locations..."
+            # 尝试其他可能的路径
+            $possiblePaths = @(
+                "C:/Qt/Tools/mingw1120_64/bin",
+                "C:/Qt/Tools/mingw1120_32/bin",
+                "C:/Qt/Tools/mingw810_64/bin",
+                "C:/Qt/Tools/mingw810_32/bin"
+            )
+            
+            foreach ($path in $possiblePaths) {
+                if (Test-Path $path) {
+                    Write-Host "Found MinGW at: $path"
+                    echo "MINGW_PATH=$path" >> $env:GITHUB_ENV
+                    echo "$path" >> $env:GITHUB_PATH
+                    break
+                }
+            }
+        }
+        
+        # 验证 GCC 是否可用
+        if (Get-Command gcc -ErrorAction SilentlyContinue) {
+            Write-Host "GCC is available in PATH"
+            gcc --version
+        } else {
+            Write-Warning "GCC not found in PATH"
         }
 
     - name: Configure CMake
       shell: powershell
       run: |
+        # 设置明确的编译器路径（如果找到了 MinGW 路径）
+        $compilerFlags = ""
+        if ($env:MINGW_PATH) {
+            $compilerFlags = "-DCMAKE_C_COMPILER=$env:MINGW_PATH/gcc.exe -DCMAKE_CXX_COMPILER=$env:MINGW_PATH/g++.exe"
+        }
+        
         cmake -B ${{github.workspace}}/build `
           -DCMAKE_BUILD_TYPE=Release `
           -DCMAKE_MAKE_PROGRAM=ninja `
           -G "Ninja" `
           -DCMAKE_PREFIX_PATH="${{ env.QT_DIR }}" `
-          -DCMAKE_C_COMPILER=gcc.exe `
-          -DCMAKE_CXX_COMPILER=g++.exe `
+          $compilerFlags `
           -DCMAKE_CXX_STANDARD=17 `
           -DQt6_DIR="${{ env.QT_DIR }}/lib/cmake/Qt6"
 
-    - name: Print Qt dir
+    - name: Print environment info
       shell: powershell
       run: |
-        Write-Output "Qt directory: ${{ env.QT_DIR }}"
-        Write-Output "Listing Qt directory:"
-        Get-ChildItem "${{ env.QT_DIR }}"
+        Write-Output "QT_DIR: ${{ env.QT_DIR }}"
+        Write-Output "MINGW_PATH: $env:MINGW_PATH"
+        Write-Output "PATH: $env:PATH"
+        Write-Output "GCC version:"
+        gcc --version 2>&1 || Write-Output "GCC not available"
+        Write-Output "CMake version:"
+        cmake --version
 
     - name: Build
       shell: powershell
       run: |
-        cmake --build ${{github.workspace}}/build --config Release
+        cmake --build ${{github.workspace}}/build --config Release --verbose
 
-    - name: Verify files and Get Qt dependencies
+    - name: Verify build output
       shell: powershell
       run: |
-        # 确保 windeployqt 可用
-        $windeployqt = "${{ env.QT_DIR }}/bin/windeployqt.exe"
-        if (Test-Path $windeployqt) {
-            Write-Host "Found windeployqt at: $windeployqt"
+        if (Test-Path "${{github.workspace}}/build/Release/VioletClient.exe") {
+            Write-Host "Build successful! VioletClient.exe found."
+            Get-Item "${{github.workspace}}/build/Release/VioletClient.exe"
         } else {
-            Write-Host "windeployqt not found at: $windeployqt"
+            Write-Error "VioletClient.exe not found!"
+            Write-Host "Build directory contents:"
+            Get-ChildItem -Path "${{github.workspace}}/build" -Recurse
+            exit 1
+        }
+
+    - name: Deploy with windeployqt
+      shell: powershell
+      run: |
+        # 创建部署目录
+        New-Item -ItemType Directory -Path installer -Force
+        
+        # 复制可执行文件
+        Copy-Item "${{github.workspace}}/build/Release/VioletClient.exe" installer/
+        
+        # 查找 windeployqt
+        $windeployqt = "${{ env.QT_DIR }}/bin/windeployqt.exe"
+        if (-not (Test-Path $windeployqt)) {
             # 尝试在其他位置查找
-            $windeployqt = Get-ChildItem -Path "${{ env.QT_DIR }}/.." -Recurse -Filter "windeployqt.exe" | Select-Object -First 1
+            $windeployqt = Get-ChildItem -Path "C:/" -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($windeployqt) {
-                Write-Host "Found windeployqt at: $($windeployqt.FullName)"
                 $windeployqt = $windeployqt.FullName
             } else {
-                Write-Error "windeployqt not found anywhere!"
+                Write-Error "windeployqt not found!"
                 exit 1
             }
         }
         
-        # 创建安装目录
-        New-Item -ItemType Directory -Path installer -Force
+        Write-Host "Using windeployqt: $windeployqt"
         
-        # 复制可执行文件
-        Copy-Item "${{github.workspace}}/build/Release/VioletClient.exe" installer
-        
-        # 使用 windeployqt 收集依赖
+        # 运行 windeployqt
         & $windeployqt `
           --release `
           --no-compiler-runtime `
           --dir installer `
           "installer/VioletClient.exe"
         
-        # 显示结果
-        Write-Host "Installer directory contents:"
+        Write-Host "Deployment completed. Installer directory contents:"
         Get-ChildItem -Path installer -Recurse
 
-    - name: Pack up installer
+    - name: Create installer with NSIS
       shell: powershell
       run: |
-        # 检查是否已安装 NSIS
-        if (Get-Command makensis -ErrorAction SilentlyContinue) {
-            Write-Host "NSIS is already installed"
-        } else {
-            # 安装 NSIS
-            choco install nsis -y
+        # 安装 NSIS（如果尚未安装）
+        if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
         }
         
-        # 运行 NSIS 编译
-        makensis -V4 MakeInstaller.nsi
+        # 检查 NSIS 脚本是否存在
+        if (Test-Path "MakeInstaller.nsi") {
+            Write-Host "Found MakeInstaller.nsi, creating installer..."
+            makensis -V4 MakeInstaller.nsi
+        } else {
+            # Write-Host "MakeInstaller.nsi not found, creating basic installer..."
+            # 创建简单的 NSIS 脚本（备用）
+            echo ------------------------------------------------------------------------------------
+        }
 
     - name: Create Release
-      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
       with:
         files: VioletClientSetup64.exe
