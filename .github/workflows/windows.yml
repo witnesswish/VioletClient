@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  QT_VERSION: 6.5.0  # 修改为存在的Qt版本
+  QT_VERSION: 6.9.0  # 更新为 Qt 6.9
   QT_HOST: windows
   QT_TARGET: desktop
   QT_ARCH: win64_mingw
@@ -37,13 +37,22 @@ jobs:
     - name: Add MinGW to PATH
       shell: powershell
       run: |
-        Add-Content $env:GITHUB_PATH "${{ env.QT_DIR }}/../Tools/mingw1120_64/bin"
-
-    - name: Install MinGW runtime libraries
-      shell: powershell
-      run: |
-        # 安装必要的运行时库
-        choco install mingw-w64-x86_64-dev -y
+        $mingwPath = "${{ env.QT_DIR }}/../../Tools/mingw1120_64/bin"
+        if (Test-Path $mingwPath) {
+            Add-Content $env:GITHUB_PATH $mingwPath
+        } else {
+            Write-Host "Mingw path not found: $mingwPath"
+            # 尝试查找其他可能的路径
+            $possiblePaths = Get-ChildItem -Path "${{ env.QT_DIR }}/../../Tools" -Filter "mingw*" -Directory
+            foreach ($path in $possiblePaths) {
+                $binPath = "$($path.FullName)/bin"
+                if (Test-Path $binPath) {
+                    Add-Content $env:GITHUB_PATH $binPath
+                    Write-Host "Added to PATH: $binPath"
+                    break
+                }
+            }
+        }
 
     - name: Configure CMake
       shell: powershell
@@ -62,40 +71,63 @@ jobs:
       shell: powershell
       run: |
         Write-Output "Qt directory: ${{ env.QT_DIR }}"
+        Write-Output "Listing Qt directory:"
+        Get-ChildItem "${{ env.QT_DIR }}"
 
     - name: Build
       shell: powershell
       run: |
         cmake --build ${{github.workspace}}/build --config Release
 
-    - name: Deploy
-      if: github.event_name == 'push'
-      shell: powershell
-      run: |
-        cd ${{github.workspace}}/build
-        cmake --install . --prefix package
-        # 创建部署脚本并执行
-        cmake -DCMAKE_INSTALL_PREFIX=package -P cmake_install.cmake
-        # 如果有部署脚本，执行它
-        if (Test-Path deploy_script.cmake) {
-          cmake -P deploy_script.cmake
-        }
-
     - name: Verify files and Get Qt dependencies
       shell: powershell
       run: |
-        $QT_BIN = "$env:QT_DIR/bin"
-        & "windeployqt.exe" `
+        # 确保 windeployqt 可用
+        $windeployqt = "${{ env.QT_DIR }}/bin/windeployqt.exe"
+        if (Test-Path $windeployqt) {
+            Write-Host "Found windeployqt at: $windeployqt"
+        } else {
+            Write-Host "windeployqt not found at: $windeployqt"
+            # 尝试在其他位置查找
+            $windeployqt = Get-ChildItem -Path "${{ env.QT_DIR }}/.." -Recurse -Filter "windeployqt.exe" | Select-Object -First 1
+            if ($windeployqt) {
+                Write-Host "Found windeployqt at: $($windeployqt.FullName)"
+                $windeployqt = $windeployqt.FullName
+            } else {
+                Write-Error "windeployqt not found anywhere!"
+                exit 1
+            }
+        }
+        
+        # 创建安装目录
+        New-Item -ItemType Directory -Path installer -Force
+        
+        # 复制可执行文件
+        Copy-Item "${{github.workspace}}/build/Release/VioletClient.exe" installer
+        
+        # 使用 windeployqt 收集依赖
+        & $windeployqt `
           --release `
           --no-compiler-runtime `
           --dir installer `
-          "${{github.workspace}}/build/Release/VioletClient.exe"
-        Copy-Item "${{github.workspace}}/build/Release/VioletClient.exe" installer
+          "installer/VioletClient.exe"
+        
+        # 显示结果
+        Write-Host "Installer directory contents:"
         Get-ChildItem -Path installer -Recurse
 
     - name: Pack up installer
       shell: powershell
       run: |
+        # 检查是否已安装 NSIS
+        if (Get-Command makensis -ErrorAction SilentlyContinue) {
+            Write-Host "NSIS is already installed"
+        } else {
+            # 安装 NSIS
+            choco install nsis -y
+        }
+        
+        # 运行 NSIS 编译
         makensis -V4 MakeInstaller.nsi
 
     - name: Create Release
