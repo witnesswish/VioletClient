@@ -41,13 +41,12 @@ jobs:
       run: |
         mkdir build
         cd build
-        Write-Host "QT_DIR: ${{ env.QT_DIR }}"
         $env:PATH = "C:\Qt\Tools\mingw1310_64\bin;" + $env:PATH
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
         mingw32-make -j4
         Get-ChildItem -Path . -Recurse | Where-Object { $_.Name -ne "VioletClient.exe" } | Remove-Item -Recurse -Force
-        C:\Qt\6.9.1\mingw_64\bin\windeployqt.exe .\VioletClient.exe
         dir
+        dir $env:QT_PATH/bin
         echo ${{env.QT_DIR }}
 
     - name: Verify files and Get Qt dependencies
