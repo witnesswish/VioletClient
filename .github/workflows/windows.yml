@@ -42,8 +42,9 @@ jobs:
         mkdir -p build
         cd build
         rm -r -force *
-        #dir ..\..\Qt
-        $env:PATH = "D:\a\VioletClient\Qt\Tools\mingw1310_64\bin;" + $env:PATH
+        dir ..\..\Qt
+        dir C:/mingw64/bin/
+        #$env:PATH = "D:\a\VioletClient\Qt\Tools\mingw1310_64\bin;" + $env:PATH
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
         mingw32-make -j4
         Get-ChildItem -Path . -Recurse | Where-Object { $_.Name -ne "VioletClient.exe" } | Remove-Item -Recurse -Force
