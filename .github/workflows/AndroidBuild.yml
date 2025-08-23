@@ -1,4 +1,4 @@
-name: Build Project VioletClient
+name: Build Android armeabi-v7a
 
 on:
   push:
