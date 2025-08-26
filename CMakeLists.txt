@@ -33,6 +33,7 @@ qt_add_executable(VioletClient
     logincenter.h logincenter.cpp logincenter.ui
     registerviolet.h registerviolet.cpp registerviolet.ui
     usermainwindow.h usermainwindow.cpp usermainwindow.ui
+    README.md
 
 )
 

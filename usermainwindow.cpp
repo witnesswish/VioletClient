@@ -113,14 +113,28 @@ void UserMainWindow::read_cb()
         }
         if(command == "vbul")
         {
-            foreach (QListWidgetItem *item, ui->uFriendList->findItems(name, Qt::MatchExactly)) {
-                int rowid = ui->uFriendList->row(item);
-                if(rowid != 0)
-                {
-                    item = ui->uFriendList->takeItem(rowid);
-                    ui->uFriendList->insertItem(0, item);
+            foreach (QListWidgetItem *item, ui->uFriendList->findItems(name, Qt::MatchExactly))
+            {
+                if (item->foreground().color() == Qt::green) {
+                    qDebug() << "用户 " << name << " 已经登录，不要重复广播";
                 }
-                item->setForeground(Qt::green);
+                else
+                {
+                    qDebug() << "用户 " << name << " 登录，改变颜色，并回复服务器收到";
+                    int rowid = ui->uFriendList->row(item);
+                    if(rowid != 0)
+                    {
+                        item = ui->uFriendList->takeItem(rowid);
+                        ui->uFriendList->insertItem(0, item);
+                    }
+                    item->setForeground(Qt::green);
+                    VioletProtNeck neck = {};
+                    strcpy(neck.command, "vbulre");
+                    memcpy(neck.name, m_username.c_str(), sizeof(neck.name));
+                    memcpy(neck.pass, name.toStdString().c_str(), sizeof(neck.pass));
+                    std::string tmp("violet");
+                    sr.sendMsg(sock, neck, tmp.c_str());
+                }
             }
         }
         if(command == "vbol")

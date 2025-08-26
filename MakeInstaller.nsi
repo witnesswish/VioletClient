@@ -1,7 +1,7 @@
 ; Granted by hand
 Name "VioletClient"
 
-OutFile "VioletClientSetup64.exe"
+OutFile "VioletClient-Win64-Setup.exe"
 RequestExecutionLevel user
 Unicode True
 InstallDir $PROGRAMFILES64\VioletClient
