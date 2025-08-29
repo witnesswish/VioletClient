@@ -11,6 +11,8 @@
     <qresource prefix="/icos"/>
     <qresource prefix="/">
         <file>resources/violet.ico</file>
+        <file>resources/icons8-closeEye-24.png</file>
+        <file>resources/icons8-openEye-24.png</file>
     </qresource>
     <qresource prefix="/cc"/>
 </RCC>

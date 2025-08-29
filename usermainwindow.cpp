@@ -1,5 +1,6 @@
 #include "usermainwindow.h"
 #include "ui_usermainwindow.h"
+#include "messagedispatcher.h"
 
 std::map<std::string, UserRecvBufferCache> UserMainWindow::userRecvBuffCache;
 
@@ -26,7 +27,7 @@ UserMainWindow::UserMainWindow(QTcpSocket *socket, std::string uname, std::vecto
     setWindowTitle(QString::fromStdString(m_username));
     for(const auto &f : userfriend)
     {
-        qDebug()<< "fri: " << f;
+        //qDebug()<< "fri: " << f;
         ui->uFriendList->addItem(QString::fromStdString(f));
     }
     for(const auto &f : iusergroup)
@@ -34,6 +35,24 @@ UserMainWindow::UserMainWindow(QTcpSocket *socket, std::string uname, std::vecto
         ui->uGroupList->addItem(QString::fromStdString(f));
     }
     connect(sock, &QTcpSocket::readyRead, this, &UserMainWindow::read_cb);
+    path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    externalPrivatePath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);    ///Android/data/<package_name>/
+    externalPublicPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);     ///storage/emulated/0/
+    if(!db.openDatabase(path+"/v"+uname.c_str()+".db"))
+    {
+        qDebug()<< "open db error";
+    }
+    {
+        db.createTable("userinfo", "name TEXT NOT NULL, avat TEXT");
+        QVariantMap me;
+        me["name"] = uname.c_str();
+        me["avat"] = "defalut right now";
+        db.insertRecord("userinfo", me);
+    }
+    if(db.isOpen())
+    {
+        db.closeDatabase();
+    }
 }
 
 UserMainWindow::~UserMainWindow()
@@ -377,5 +396,11 @@ void UserMainWindow::on_uGroupList_itemDoubleClicked(QListWidgetItem *item)
 {
     QString tmp = item->text();
     openWindow(tmp, ChatType::LGG, false);
+}
+
+
+void UserMainWindow::on_uRecentList_itemDoubleClicked(QListWidgetItem *item)
+{
+
 }
 

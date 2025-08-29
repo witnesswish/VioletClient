@@ -16,7 +16,10 @@ VioletClient::VioletClient(QWidget *parent)
     setAttribute(Qt::WA_Mapped);
     ui->setupUi(this);
     path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    externalPrivatePath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);    ///Android/data/<package_name>/
+    externalPublicPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);     ///storage/emulated/0/
     QDir().mkpath(path);
+    QDir().mkpath(externalPrivatePath);
 
     sock = new QTcpSocket(this);
     connectNetwork(sock);
@@ -30,17 +33,21 @@ void VioletClient::gotoUnlogin(int uid) {
     {
         qDebug()<< "open db error";
     }
-    db.createTable("me", "id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE, age INTEGER");
-    qDebug()<< uid;
-    db.deleteRecord("me", "1=1;");
-    QVariantMap me;
-    me["id"] = uid;
-    me["name"] = "self";
-    me["email"] = "vu1@elveso.asia";
-    me["age"] = 29;
-    db.insertRecord("me", me);
-    db.closeDatabase();
-    qDebug()<< "sql db: " << db.isOpen();
+    {
+        db.createTable("me", "id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE, age INTEGER");
+        qDebug()<< uid;
+        db.deleteRecord("me", "1=1;");
+        QVariantMap me;
+        me["id"] = uid;
+        me["name"] = "self";
+        me["email"] = "vu1@elveso.asia";
+        me["age"] = 29;
+        db.insertRecord("me", me);
+    }
+    if(db.isOpen())
+    {
+        db.closeDatabase();
+    }
     connect(unlogin, &UnloginCenter::sclose, this, [=](){this->show();connect(sock, &QTcpSocket::readyRead, this, &VioletClient::read_cb);});
     disconnect(sock, &QTcpSocket::readyRead, this, &VioletClient::read_cb);
     this->hide();
@@ -53,11 +60,6 @@ void VioletClient::gotoUnlogin(int uid) {
 VioletClient::~VioletClient()
 {
     delete ui;
-    if(sock)
-    {
-        sock->disconnectFromHost();
-        sock->deleteLater();
-    }
 }
 
 void VioletClient::connectNetwork(QTcpSocket *sock)
@@ -98,6 +100,11 @@ void VioletClient::closeEvent(QCloseEvent *event)
     if (resBtn != QMessageBox::Yes) {
         event->ignore();
     } else {
+        if(sock)
+        {
+            sock->disconnectFromHost();
+            sock->deleteLater();
+        }
         event->accept();
     }
 }

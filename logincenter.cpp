@@ -12,6 +12,26 @@ LoginCenter::LoginCenter(QTcpSocket *socket, QWidget *parent)
     connect(sock, &QTcpSocket::readyRead, this, &LoginCenter::read_cb);
     setAttribute(Qt::WA_DeleteOnClose);
     isLogin = false;
+    QAction *toggleAction = new QAction(this);
+    toggleAction->setIcon(QIcon(":/resources/icons8-closeEye-24.png"));
+    toggleAction->setCheckable(true);
+    toggleAction->setToolTip("显示密码");
+
+    // 将动作添加到行编辑框的右侧
+    ui->password->addAction(toggleAction, QLineEdit::TrailingPosition);
+
+    // 连接信号槽
+    connect(toggleAction, &QAction::toggled, this, [this, toggleAction]() {
+        if (toggleAction->isChecked()) {
+            ui->password->setEchoMode(QLineEdit::Normal);
+            toggleAction->setIcon(QIcon(":/resources/icons8-openEye-24.png"));
+            toggleAction->setToolTip("隐藏密码");
+        } else {
+            ui->password->setEchoMode(QLineEdit::Password);
+            toggleAction->setIcon(QIcon(":/resources/icons8-closeEye-24.png"));
+            toggleAction->setToolTip("显示密码");
+        }
+    });
 }
 
 LoginCenter::~LoginCenter()

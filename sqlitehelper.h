@@ -15,7 +15,7 @@ class sqliteHelper : public QObject
 public:
     explicit sqliteHelper(QObject *parent = nullptr);
     ~sqliteHelper();
-    bool openDatabase(const QString &dbName);
+    bool openDatabase(const QString &dbName, const QString &connectionName="qt_sql_default_connection");
     void closeDatabase();
     bool isOpen() const;
     bool createTable(const QString &tableName, const QString &fields);

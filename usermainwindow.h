@@ -12,10 +12,12 @@
 #include <QList>
 #include <QPaintEvent>
 #include <QTabWidget>
+#include <QStandardPaths>
+#include <QDir>
 
 #include "protocol.h"
 #include "pvp.h"
-#include "messagedispatcher.h"
+#include "sqlitehelper.h"
 
 struct LoginUserWindows
 {
@@ -64,6 +66,10 @@ private:
     std::string m_username;
     std::vector<std::string> userfriend, usergroup;
     PvP *priChat;
+    sqliteHelper db;
+    QString path;
+    QString externalPrivatePath;
+    QString externalPublicPath;
     QList<LoginUserWindows> pvpWindows;
     static std::map<std::string, UserRecvBufferCache> userRecvBuffCache;
 private:

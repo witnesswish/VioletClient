@@ -9,6 +9,7 @@
 #include <QStackedLayout>
 #include <QStandardPaths>
 #include <QDir>
+#include <QSslSocket>
 
 #include "protocol.h"
 #include "unlogincenter.h"
@@ -47,6 +48,8 @@ private:
     LoginCenter *loginCenter;
     sqliteHelper db;
     QString path;
+    QString externalPrivatePath;
+    QString externalPublicPath;
 
 private:
     void closeEvent(QCloseEvent *event);

@@ -5,14 +5,18 @@
 #include <QTcpSocket>
 #include <QTextBrowser>
 #include <QTime>
+#include <QDateTime>
 #include <QWidget>
 #include <QTextTableCell>
 #include <QTextTableCellFormat>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QThread>
+#include <QStandardPaths>
+#include <QShowEvent>
 
 #include "protocol.h"
+#include "sqlitehelper.h"
 
 /**
  *这个类必须复用，我不想再写了
@@ -53,15 +57,22 @@ private:
     QString m_uid;
     QString m_loginUsername;
     ChatType type;
+    sqliteHelper db;
+    QString path;
+    QString externalPrivatePath;
+    QString externalPublicPath;
 
 private slots:
     void onMessageDispatched(QObject *receiver, const QString &uid, const QString &uid2, const QString &message);
     void on_send_pressed();
     void on_text_returnPressed();
-    void closeEvent(QCloseEvent *event);
-    void displayAppend(QTextBrowser *textBrowser, const QString &username, const QString &avatarPath, const QString &text, Qt::Alignment align = Qt::AlignLeft);
+    void closeEvent(QCloseEvent *event) override;
+    void showEvent(QShowEvent *event) override;
+    void displayAppend(QTextBrowser *textBrowser, const QString &username, const QString &avatarPath, const QString &timeHole,
+                       const QString &text, Qt::Alignment align = Qt::AlignLeft);
 
     void on_sned_file_pressed();
+    void init(QTextBrowser *t);
 
 signals:
     void m_close();

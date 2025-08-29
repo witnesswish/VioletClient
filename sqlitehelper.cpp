@@ -6,13 +6,19 @@ sqliteHelper::~sqliteHelper() {
     closeDatabase();
 }
 
-bool sqliteHelper::openDatabase(const QString &dbName)
+bool sqliteHelper::openDatabase(const QString &dbName, const QString &connectionName)
 {
     if (m_db.isOpen()) {
         return true;
     }
-
-    m_db = QSqlDatabase::addDatabase("QSQLITE");
+    if(connectionName.trimmed().isEmpty())
+    {
+        m_db = QSqlDatabase::addDatabase("QSQLITE");
+    }
+    else
+    {
+        m_db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+    }
     m_db.setDatabaseName(dbName);
     m_dbName = dbName;
 
@@ -20,18 +26,20 @@ bool sqliteHelper::openDatabase(const QString &dbName)
         qDebug() << "Error: Failed to open database:" << m_db.lastError().text();
         return false;
     }
-
     return true;
 }
 
 void sqliteHelper::closeDatabase()
 {
     if (m_db.isOpen()) {
-        QSqlQuery query(m_db);
-        query.finish(); // 结束未完成的查询
+        // QSqlQuery query(m_db);
+        // query.finish(); // 结束未完成的查询
         m_db.close();
+        m_db = QSqlDatabase();
+        qDebug() << "close database 1 times";
     }
     if (QSqlDatabase::contains(QSqlDatabase::defaultConnection)) {
+        qDebug() << "close database 1 times";
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
     }
 }
@@ -49,13 +57,14 @@ bool sqliteHelper::createTable(const QString &tableName, const QString &fields)
     }
 
     QString queryStr = QString("CREATE TABLE IF NOT EXISTS %1 (%2)").arg(tableName, fields);
-    QSqlQuery query;
+    QSqlQuery query(m_db);
 
     if (!query.exec(queryStr)) {
         qDebug() << "Create table error:" << query.lastError().text();
+        query.finish();
         return false;
     }
-
+    query.finish();
     return true;
 }
 
@@ -72,7 +81,7 @@ bool sqliteHelper::insertRecord(const QString &tableName, const QVariantMap &dat
     }
 
     QString queryStr = buildInsertQuery(tableName, data);
-    QSqlQuery query;
+    QSqlQuery query(m_db);
 
     query.prepare(queryStr);
 
@@ -83,9 +92,10 @@ bool sqliteHelper::insertRecord(const QString &tableName, const QVariantMap &dat
 
     if (!query.exec()) {
         qDebug() << "Insert error:" << query.lastError().text();
+        query.finish();
         return false;
     }
-
+    query.finish();
     return true;
 }
 
@@ -102,7 +112,7 @@ bool sqliteHelper::updateRecord(const QString &tableName, const QVariantMap &dat
     }
 
     QString queryStr = buildUpdateQuery(tableName, data, where);
-    QSqlQuery query;
+    QSqlQuery query(m_db);
 
     query.prepare(queryStr);
 
@@ -113,9 +123,10 @@ bool sqliteHelper::updateRecord(const QString &tableName, const QVariantMap &dat
 
     if (!query.exec()) {
         qDebug() << "Update error:" << query.lastError().text();
+        query.finish();
         return false;
     }
-
+    query.finish();
     return query.numRowsAffected() > 0;
 }
 
@@ -131,12 +142,13 @@ bool sqliteHelper::deleteRecord(const QString &tableName, const QString &where)
         queryStr += " WHERE " + where;
     }
 
-    QSqlQuery query;
+    QSqlQuery query(m_db);
     if (!query.exec(queryStr)) {
         qDebug() << "Delete error:" << query.lastError().text();
+        query.finish();
         return false;
     }
-
+    query.finish();
     return query.numRowsAffected() > 0;
 }
 
@@ -157,7 +169,7 @@ QList<QVariantMap> sqliteHelper::selectRecords(const QString &tableName, const Q
         queryStr += " ORDER BY " + orderBy;
     }
 
-    QSqlQuery query(queryStr);
+    QSqlQuery query(queryStr, m_db);
 
     while (query.next()) {
         QVariantMap record;
@@ -169,7 +181,7 @@ QList<QVariantMap> sqliteHelper::selectRecords(const QString &tableName, const Q
 
         result.append(record);
     }
-
+    query.finish();
     return result;
 }
 

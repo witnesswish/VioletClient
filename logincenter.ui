@@ -53,13 +53,6 @@
        <item>
         <widget class="QLineEdit" name="username"/>
        </item>
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>用户名</string>
-         </property>
-        </widget>
-       </item>
       </layout>
      </item>
      <item>
@@ -72,12 +65,9 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="password"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>密   码</string>
+        <widget class="QLineEdit" name="password">
+         <property name="echoMode">
+          <enum>QLineEdit::EchoMode::Password</enum>
          </property>
         </widget>
        </item>

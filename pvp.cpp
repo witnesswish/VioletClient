@@ -12,6 +12,14 @@ PvP::PvP(QTcpSocket *socket, QString &uid, const QString loginUsername, ChatType
     sock = socket;
     MessageDispatcher::instance()->registerWindow(m_uid, this);
     connect(MessageDispatcher::instance(), &MessageDispatcher::messageDispatched, this, &PvP::onMessageDispatched, Qt::QueuedConnection);
+    path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    externalPrivatePath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);    ///Android/data/<package_name>/
+    externalPublicPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);     ///storage/emulated/0/
+    if(!db.openDatabase(path+"/v"+m_loginUsername+".db", m_uid))
+    {
+        qDebug()<< "open db error";
+    }
+    db.createTable("v"+m_uid+"msg", "title TEXT NOT NULL, name TEXT NOT NULL, content TEXT NOT NULL, created_time TEXT NOT NULL");
 }
 
 PvP::~PvP()
@@ -23,12 +31,32 @@ PvP::~PvP()
 void PvP::closeEvent(QCloseEvent *event)
 {
     emit m_close();
+    if(db.isOpen())
+    {
+        db.closeDatabase();
+    }
     event->accept();
 }
 
-void PvP::displayAppend(QTextBrowser *textBrowser, const QString &username, const QString &avatarPath, const QString &text, Qt::Alignment align)
+void PvP::showEvent(QShowEvent *event)
 {
-    // 保存当前文本光标位置
+    QTextBrowser *t = ui->display;
+    init(t);
+}
+
+void PvP::displayAppend(QTextBrowser *textBrowser, const QString &username, const QString &avatarPath, const QString &timeHole,
+                        const QString &text, Qt::Alignment align)
+{
+    QString timeString;
+    if(timeHole == "no" || timeHole.trimmed().isEmpty())
+    {
+        timeString = QDateTime::currentDateTime().toString();
+    }
+    else
+    {
+        timeString = timeHole;
+    }
+    // 获取当前文本光标位置，并移动到末尾
     QTextCursor cursor = textBrowser->textCursor();
     cursor.movePosition(QTextCursor::End);
 
@@ -56,7 +84,8 @@ void PvP::displayAppend(QTextBrowser *textBrowser, const QString &username, cons
     QTextCharFormat charFormat;
     charFormat.setVerticalAlignment(QTextCharFormat::AlignMiddle);
 
-    if (align & Qt::AlignRight) {
+    if (align & Qt::AlignRight)
+    {
         // msg from local
         QTextTableCell cell = table->cellAt(0, 1);
         QTextCursor cellCursor = cell.firstCursorPosition();
@@ -67,9 +96,9 @@ void PvP::displayAppend(QTextBrowser *textBrowser, const QString &username, cons
         }
         cell = table->cellAt(0, 0);
         cellCursor = cell.firstCursorPosition();
-        cellCursor.insertHtml(QString("%2 %3<div style='background-color: #CCFFCC; border-radius: 5px; "
+        cellCursor.insertHtml(QString("%3 %2<div style='background-color: #CCFFCC; border-radius: 5px; "
                                       "padding: 8px;'>%1</div>")
-                              .arg(tmp, username, QTime::currentTime().toString()));
+                              .arg(tmp, username, timeString));
     } else {
         // msg from server
         QTextTableCell cell = table->cellAt(0, 0);
@@ -84,10 +113,12 @@ void PvP::displayAppend(QTextBrowser *textBrowser, const QString &username, cons
         cellCursor.insertHtml(
                     QString("%2 %3<div style='background-color: #CCFFFF; border-radius: 5px; "
                             "padding: 3px;'>%1</div>")
-                    .arg(tmp, username, QTime::currentTime().toString()));
+                    .arg(tmp, username, timeString));
     }
+    cursor.movePosition(QTextCursor::End);
     textBrowser->moveCursor(QTextCursor::End);
     textBrowser->ensureCursorVisible();
+    ui->text->clear();
 }
 
 void PvP::onMessageDispatched(QObject *receiver, const QString &uid, const QString &uid2, const QString &text)
@@ -95,17 +126,29 @@ void PvP::onMessageDispatched(QObject *receiver, const QString &uid, const QStri
     qDebug() << "messagee recv on dispatch： " << this->windowTitle();
     if (receiver == this) {
         QApplication::alert(this, 10000);
-        if(text == QString("user not online"))
+        if(text == QString("user not online, message will be sent after user online"))
         {
-            displayAppend(ui->display, "系统提示", "", "当前用户不在线，如果是匿名模式，系统不会为您保留任何记录，如果是登录模式，那么系统会在用户上线之后进行消息推送");
+            displayAppend(ui->display, "系统提示", "", "no", "当前用户不在线，如果是匿名模式，系统不会为您保留任何记录，如果是登录模式，那么系统会在用户上线之后进行消息推送");
             return;
         }
         if(!uid2.trimmed().isEmpty())
         {
-            displayAppend(ui->display, uid2, ":/avtars/resources/user1.png", text);
+            displayAppend(ui->display, uid2, ":/avtars/resources/user1.png", "no", text);
+            QVariantMap me;
+            me["title"] = m_uid;
+            me["name"] = uid2;
+            me["content"] = text;
+            me["created_time"] = QDateTime::currentDateTime().toString();
+            db.insertRecord("v"+m_uid+"msg", me);
             return;
         }
-        displayAppend(ui->display, this->windowTitle(), ":/avtars/resources/user1.png", text);
+        displayAppend(ui->display, this->windowTitle(), ":/avtars/resources/user1.png", "no", text);
+        QVariantMap me;
+        me["title"] = m_uid;
+        me["name"] = uid;
+        me["content"] = text;
+        me["created_time"] = QDateTime::currentDateTime().toString();
+        db.insertRecord("v"+m_uid+"msg", me);
     }
 }
 
@@ -129,7 +172,14 @@ void PvP::on_send_pressed()
         memcpy(neck.name, m_loginUsername.toStdString().c_str(), sizeof(neck.name));
         memcpy(neck.pass, m_uid.toStdString().c_str(), sizeof(neck.pass));
         sr.sendMsg(sock, neck, text.toStdString());
-        displayAppend(ui->display, m_loginUsername, ":/avtars/resources/user5.png", text, Qt::AlignRight);
+        displayAppend(ui->display, m_loginUsername, ":/avtars/resources/user5.png", "no", text, Qt::AlignRight);
+        // 写入数据库title TEXT NOT NULL, name TEXT NOT NULL, content TEXT NOT NULL, created_time TEXT NOT NULL
+        QVariantMap me;
+        me["title"] = m_uid;
+        me["name"] = m_loginUsername;
+        me["content"] = text;
+        me["created_time"] = QDateTime::currentDateTime().toString();
+        db.insertRecord("v"+m_uid+"msg", me);
         ui->text->clear();
         return;
     }
@@ -140,7 +190,13 @@ void PvP::on_send_pressed()
         memcpy(neck.name, m_loginUsername.toStdString().c_str(), sizeof(neck.name));
         memcpy(neck.pass, m_uid.toStdString().c_str(), sizeof(neck.pass));
         sr.sendMsg(sock, neck, text.toStdString());
-        displayAppend(ui->display, m_loginUsername, ":/avtars/resources/user5.png", text, Qt::AlignRight);
+        displayAppend(ui->display, m_loginUsername, ":/avtars/resources/user5.png", "no", text, Qt::AlignRight);
+        QVariantMap me;
+        me["title"] = m_uid;
+        me["name"] = m_loginUsername;
+        me["content"] = text;
+        me["created_time"] = QDateTime::currentDateTime().toString();
+        db.insertRecord("v"+m_uid+"msg", me);
         ui->text->clear();
         return;
     }
@@ -150,13 +206,19 @@ void PvP::on_send_pressed()
         neck.mto = m_uid.toInt();
         if(neck.mto == 0)
         {
-            displayAppend(ui->display, "系统提示", "", QString("这是一个错误，如果不是系统出问题，你可能点进了开发测试的点，这个会在后续版本改进"), Qt::AlignCenter);
+            displayAppend(ui->display, "系统提示", "", "no", QString("这是一个错误，如果不是系统出问题，你可能点进了开发测试的点，这个会在后续版本改进"), Qt::AlignCenter);
             return;
         }
         neck.unlogin = true;
         sr.sendMsg(sock, neck, text.toStdString());
         qDebug()<<sock->bytesToWrite();
-        displayAppend(ui->display, "you", ":/avtars/resources/user3.png", text, Qt::AlignRight);
+        displayAppend(ui->display, "you", ":/avtars/resources/user3.png", "no", text, Qt::AlignRight);
+        QVariantMap me;
+        me["title"] = m_uid;
+        me["name"] = m_loginUsername;
+        me["content"] = text;
+        me["created_time"] = QDateTime::currentDateTime().toString();
+        db.insertRecord("v"+m_uid+"msg", me);
     }
     ui->text->clear();
 }
@@ -207,6 +269,31 @@ void PvP::on_sned_file_pressed()
             .arg(fileInfo.lastModified().toString());
 
     QMessageBox::information(nullptr, "文件详情", infoMessage);
+}
+
+void PvP::init(QTextBrowser *t)
+{
+    auto ret = db.selectRecords("v"+m_uid+"msg");
+    if(!ret.isEmpty())
+    {
+        for(const auto &it : std::as_const(ret))
+        {
+            if(it["name"].toString() == m_loginUsername)
+            {
+                const QString name = it["name"].toString();
+                const QString text = it["content"].toString();
+                const QString thatTime = it["created_time"].toString();
+                displayAppend(t, name, ":/avtars/resources/user1.png", thatTime, text, Qt::AlignRight);
+            }
+            else
+            {
+                const QString name = it["name"].toString();
+                const QString text = it["content"].toString();
+                const QString thatTime = it["created_time"].toString();
+                displayAppend(t, name, ":/avtars/resources/user2.png", thatTime, text);
+            }
+        }
+    }
 }
 
 
