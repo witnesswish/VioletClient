@@ -59,6 +59,8 @@ private slots:
 
     void on_uGroupList_itemDoubleClicked(QListWidgetItem *item);
 
+    void on_uRecentList_itemDoubleClicked(QListWidgetItem *item);
+
 private:
     Ui::UserMainWindow *ui;
     QTcpSocket *sock;

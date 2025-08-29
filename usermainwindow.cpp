@@ -248,7 +248,8 @@ void UserMainWindow::read_cb()
 void UserMainWindow::openWindow(QString name, ChatType itype, bool isSrv)
 {
     auto it = std::find_if(pvpWindows.begin(), pvpWindows.end(), [name](const LoginUserWindows &wu) { return wu.uid == name; });
-    if (it != pvpWindows.end()) {
+    if (it != pvpWindows.end())
+    {
         if(it->pvp->isMaximized() || it->pvp->isMaximized())
         {
             //it still not work, leave it alone, just, go away, nobody needs you
@@ -401,6 +402,15 @@ void UserMainWindow::on_uGroupList_itemDoubleClicked(QListWidgetItem *item)
 
 void UserMainWindow::on_uRecentList_itemDoubleClicked(QListWidgetItem *item)
 {
-
+    QString name = item->text();
+    auto it = ui->uGroupList->findItems(name, Qt::MatchExactly);
+    if(it.isEmpty())
+    {
+        openWindow(name, ChatType::LGG, false);
+    }
+    else
+    {
+        openWindow(name, ChatType::LGP, false);
+    }
 }
 
