@@ -24,6 +24,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: deconde and getcontent
+      shell: powershell
+      run: |
+        $base64String = "${{ secrets.CLIENT_SSL_KEY_BASE64 }}"
+        Set-Content -Path resources\certs\client.key -Value $base64String
+        pwd
+        dir resources
+        dir resources\certs
+        Get-Content client.key
+
     - name: Set up NSIS
       shell: powershell
       run: choco install nsis -y --no-progress

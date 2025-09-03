@@ -24,6 +24,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: deconde and echo
+      run: |
+          echo "${{ secrets.CLIENT_SSL_KEY_BASE64 }}" | base64 -d > resources/certs/client.key
+          pwd
+          ls resources\certs
+          cat client.key
+
     # I don not know, it is neccessary because qt need it, at least at this time
     - name: Fix icu first
       run: |
