@@ -15,6 +15,5 @@
     <qresource prefix="/certs">
         <file>resources/certs/client.crt</file>
         <file>resources/certs/client.key</file>
-        <file>resources/certs/cert.pem</file>
     </qresource>
 </RCC>
