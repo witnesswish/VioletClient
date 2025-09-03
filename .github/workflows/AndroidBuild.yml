@@ -26,7 +26,7 @@ jobs:
 
     - name: deconde and echo
       run: |
-          echo "${{ secrets.CLIENT_SSL_KEY_BASE64 }}" | base64 -d > resources/certs/client.key
+          echo "${{ secrets.CLIENT_SSL_KEY_BASE64 }}" | base64 -d > resources\certs\client.key
           pwd
           ls resources\certs
           cat client.key

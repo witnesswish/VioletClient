@@ -32,7 +32,7 @@ jobs:
         pwd
         dir resources
         dir resources\certs
-        Get-Content client.key
+        Get-Content resources\certs\client.key
 
     - name: Set up NSIS
       shell: powershell
