@@ -1,0 +1,82 @@
+name: Build Windows 64
+
+on:
+  push:
+    #branches: [ master ]
+    tags: 
+      - "v*"
+  workflow_dispatch:
+
+env:
+  QT_VERSION: "6.9.1"
+  #ANDROID_SDK_VERSION: '19.0'
+  ANDROID_API: 23
+  ANDROID_NDK_VERSION: 26.1.10909125
+  ANDROID_ABI: armeabi-v7a
+  ANDROID_BUILD_TOOLS_VERSION: "34.0.0"
+  ANDROID_SDK_PACKAGES: "platforms;android-33,build-tools;34.0.0,cmdline-tools;latest,platform-tools,ndk;$ANDROID_NDK_VERSION"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up NSIS
+      shell: powershell
+      run: choco install nsis -y --no-progress
+      
+    - name: Set up Qt
+      id: setup-qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: windows
+        target: desktop
+        arch: win64_mingw
+        tools: 'tools_mingw1310'
+        archives: 'qttools qtbase MinGW'
+      
+    - name: Configure and build
+      run: |
+        mkdir -p build
+        cd build
+        rm -r -force *
+        dir D:\a\VioletClient\Qt
+        if (Test-Path "D:\a\VioletClient\Qt\Tools") {
+          dir D:\a\VioletClient\Qt\Tools\mingw1310_64\bin
+        }
+        $env:PATH = "D:\a\VioletClient\Qt\Tools\mingw1310_64\bin;" + $env:PATH
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:\a\VioletClient\Qt\6.9.1\mingw_64 -G "MinGW Makefiles" ..
+        #cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="D:\a\VioletClient\Qt\6.9.1\mingw_64" -DCMAKE_C_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\gcc.exe" -DCMAKE_CXX_COMPILER="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\g++.exe" -DCMAKE_MAKE_PROGRAM="D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\mingw32-make.exe" -G "MinGW Makefiles" ..
+        mingw32-make -j4
+        #cmake --build . --config Release --parallel 4
+        Get-ChildItem -Path . -Recurse | Where-Object { $_.Name -ne "VioletClient.exe" } | Remove-Item -Recurse -Force
+        dir
+
+    - name: Verify files and Get Qt dependencies
+      shell: powershell
+      run: |
+        dir build
+        #$QT_BIN = "$env:QT_PATH/bin"
+        & "D:\a\VioletClient\Qt\6.9.1\mingw_64\bin\windeployqt.exe" `
+          --release `
+          --compiler-runtime `
+          --force `
+          --dir installer `
+          "build/VioletClient.exe"
+        Copy-Item "build/VioletClient.exe" installer
+        dir
+        #Get-ChildItem -Path installer -Recurse
+
+    - name: Pack up installer
+      run: |
+        makensis -V4 MakeInstaller.nsi
+
+    - name: Release
+      uses: softprops/action-gh-release@v2.3.2
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: D:/a/VioletClient/VioletClient/VioletClient-Win64-Setup.exe

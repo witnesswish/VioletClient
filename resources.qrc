@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/avtars">
+        <file>resources/default.png</file>
+        <file>resources/user1.png</file>
+        <file>resources/user2.png</file>
+        <file>resources/user3.png</file>
+        <file>resources/user4.png</file>
+        <file>resources/user5.png</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>resources/violet.ico</file>
+        <file>resources/icons8-closeEye-24.png</file>
+        <file>resources/icons8-openEye-24.png</file>
+    </qresource>
+    <qresource prefix="/certs">
+        <file>resources/certs/client.crt</file>
+        <file>resources/certs/client.key</file>
+        <file>resources/certs/cert.pem</file>
+    </qresource>
+</RCC>

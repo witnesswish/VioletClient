@@ -1,0 +1,140 @@
+name: Build Project VioletClient
+
+on:
+  push:
+    #branches: [ master ]
+    tags: 
+      - "v*"
+  workflow_dispatch:
+
+env:
+  QT_VERSION: "6.9.0"
+  #ANDROID_SDK_VERSION: '19.0'
+  ANDROID_API: 23
+  ANDROID_NDK_VERSION: 26.1.10909125
+  ANDROID_ABI: armeabi-v7a
+  ANDROID_BUILD_TOOLS_VERSION: "34.0.0"
+  ANDROID_SDK_PACKAGES: "platforms;android-33,build-tools;34.0.0,cmdline-tools;latest,platform-tools,ndk;$ANDROID_NDK_VERSION"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up NSIS
+      shell: powershell
+      run: choco install nsis -y --no-progress
+      
+    - name: Set up Qt
+      id: setup-qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: windows
+        target: desktop
+      
+    # - name: Configure and build
+    #   run: |
+    #     mkdir build/windows
+    #     cd build/windows
+    #     cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release ../..
+    #     cmake --build . --config Release
+
+    - name: Configure and build with Ninja
+      run: |
+        mkdir build/windows
+        cd build/windows
+        cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ../..
+        cmake --build . --config Release
+
+    - name: Verify files and Get Qt dependencies
+      shell: powershell
+      run: |
+        #$QT_BIN = "$env:QT_PATH/bin"
+        & "windeployqt.exe" `
+          --release `
+          --no-compiler-runtime `
+          --dir installer `
+          "build/windows/Release/VioletClient.exe"
+        Copy-Item "build/windows/Release/VioletClient.exe" installer
+        #Get-ChildItem -Path installer -Recurse
+
+    - name: Pack up installer
+      run: |
+        makensis -V4 MakeInstaller.nsi
+
+    - name: Release
+      uses: softprops/action-gh-release@v2.3.2
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: D:/a/VioletClient/VioletClient/VioletClientSetup64.exe
+
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    # I don not know, it is neccessary because qt need it, at least at this time
+    - name: Fix icu first
+      run: |
+        wget https://github.com/unicode-org/icu/releases/download/release-73-2/icu4c-73_2-src.tgz
+        tar xzf icu4c-73_2-src.tgz
+        cd icu/source
+        ./configure --prefix=/usr/local
+        make -j$(nproc)
+        sudo make install
+        sudo ldconfig
+        cd ../..
+
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+      
+    - name: Set up Android SDK and NDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Set up Qt for Android
+      run: |
+        #It is a problem here, try to fix it on other day
+        pip install aqtinstall==3.3.0
+        aqt install-qt linux desktop ${{env.QT_VERSION}} linux_gcc_64 \
+        -m qtcharts qtquick3d \
+          --archives qtbase qtsvg qtdeclarative 
+        aqt install-qt linux android ${{env.QT_VERSION}} android_armv7 \
+          -m qtcharts qtquick3d \
+          --archives qtbase qtsvg qtdeclarative
+
+    - name: Set up Envrimoent and build Android APK
+      run: |
+        export QT_ANDROID=/home/runner/work/VioletClient/VioletClient/6.9.0/android_armv7
+        export PATH=$JAVA_HOME/bin:$ANDROID_SDK_ROOT/tools:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_NDK_ROOT:$PATH
+        rm -rf build
+        mkdir -p build
+        cd build
+        cmake .. \
+          -DCMAKE_SYSTEM_NAME=Android \
+          -DCMAKE_SYSTEM_VERSION=23 \
+          -DCMAKE_ANDROID_ARCH_ABI=armeabi-v7a \
+          -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT \
+          -DCMAKE_ANDROID_SDK=$ANDROID_SDK_ROOT \
+          -DCMAKE_ANDROID_STL_TYPE=c++_shared \
+          -DQT_HOST_PATH=/home/runner/work/VioletClient/VioletClient/6.9.0/gcc_64 \
+          -DCMAKE_PREFIX_PATH=$QT_ANDROID \
+          -DCMAKE_TOOLCHAIN_FILE=$QT_ANDROID/lib/cmake/Qt6/qt.toolchain.cmake \
+          -G Ninja
+        cmake --build . --parallel 4
+        ninja apk
+        mv /home/runner/work/VioletClient/VioletClient/build/android-build//build/outputs/apk/debug/android-build-debug.apk /home/runner/work/VioletClient/VioletClient/build/android-build//build/outputs/apk/debug/VioletClient.apk
+
+    - name: Release
+      uses: softprops/action-gh-release@v2.3.2
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: /home/runner/work/VioletClient/VioletClient/build/android-build//build/outputs/apk/debug/VioletClient.apk
