@@ -28,9 +28,9 @@ jobs:
       shell: powershell
       run: |
         $base64String = "${{ secrets.CLIENT_SSL_KEY_BASE64 }}"
+        echo #base64String
         Set-Content -Path resources\certs\client.key -Value $base64String
         pwd
-        dir resources
         dir resources\certs
         Get-Content resources\certs\client.key
 
