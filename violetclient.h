@@ -38,6 +38,7 @@ public:
 
 public:
     void connectNetwork(QSslSocket *sock);
+    static void fileMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 
 private slots:
     void on_btn_reConnect_pressed();
@@ -62,6 +63,5 @@ private:
     void read_cb();
     void gotoUnlogin(int);
     void sslErrorHandle(const QList<QSslError> &errors);
-    static void fileMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 };
 #endif // VIOLETCLIENT_H
