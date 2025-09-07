@@ -13,6 +13,7 @@ VioletClient::VioletClient(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::VioletClient)
 {
+    qInstallMessageHandler(fileMessageHandler);
     setWindowIcon(QIcon(":/resources/violet.ico"));
     setAttribute(Qt::WA_Mapped);
     ui->setupUi(this);
@@ -76,7 +77,6 @@ VioletClient::VioletClient(QWidget *parent)
     connectNetwork(sslSock);
     ui->networkSuccess->hide();
     ui->btn_reConnect->hide();
-    qInstallMessageHandler(fileMessageHandler);
 }
 void VioletClient::gotoUnlogin(int uid) {
     qDebug()<< uid;
