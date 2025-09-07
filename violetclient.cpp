@@ -7,6 +7,8 @@
 #include "violetclient.h"
 #include "ui_violetclient.h"
 
+QMutex VioletClient::logMutex;
+
 VioletClient::VioletClient(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::VioletClient)
@@ -74,6 +76,7 @@ VioletClient::VioletClient(QWidget *parent)
     connectNetwork(sslSock);
     ui->networkSuccess->hide();
     ui->btn_reConnect->hide();
+    qInstallMessageHandler(fileMessageHandler);
 }
 void VioletClient::gotoUnlogin(int uid) {
     qDebug()<< uid;
@@ -117,7 +120,7 @@ void VioletClient::sslErrorHandle(const QList<QSslError> &errors)
             qCritical() << "Fatal SSL Error:" << error.errorString();
         }
     }
-    // 如果不是致命的错误（因为是自签名证书），则进行指纹验证
+    // 如果不是致命的错误（自签名证书），则进行指纹验证
     if (!foundFatalError)
     {
         // 获取对等方（服务器）的证书链
@@ -156,6 +159,31 @@ void VioletClient::sslErrorHandle(const QList<QSslError> &errors)
         qCritical() << "计划有变，严重错误或者证书指纹不匹配，取消交易";
         sslSock->abort();
     }
+}
+
+void VioletClient::fileMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QMutexLocker locker(&logMutex); // 线程安全
+    QString externalPublicPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    QFile file(externalPublicPath+"/VioletClient/app.log");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+        return;
+    }
+
+    QTextStream stream(&file);
+    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+
+    // 根据消息类型添加前缀
+    switch (type) {
+    case QtDebugMsg: stream << timestamp << " [DEBUG] "; break;
+    case QtInfoMsg: stream << timestamp << " [INFO] "; break;
+    case QtWarningMsg: stream << timestamp << " [WARN] "; break;
+    case QtCriticalMsg: stream << timestamp << " [ERROR] "; break;
+    case QtFatalMsg: stream << timestamp << " [FATAL] "; break;
+    }
+
+    stream << msg << "\n";
+    file.close();
 }
 /**
  * @brief VioletClient::~VioletClient
