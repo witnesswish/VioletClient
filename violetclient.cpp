@@ -26,7 +26,8 @@ VioletClient::VioletClient(QWidget *parent)
 
     // 加载客户端证书
     QFile certFile(":/certs/resources/certs/client.crt");
-    if (!certFile.open(QIODevice::ReadOnly)) {
+    if (!certFile.open(QIODevice::ReadOnly))
+    {
         qDebug() << "Failed to open client certificate file";
         return;
     }
@@ -34,7 +35,8 @@ VioletClient::VioletClient(QWidget *parent)
     certFile.close();
     // 加载客户端私钥
     QFile keyFile(":/certs/resources/certs/client.key");
-    if (!keyFile.open(QIODevice::ReadOnly)) {
+    if (!keyFile.open(QIODevice::ReadOnly))
+    {
         qDebug() << "Failed to open client private key file";
         return;
     }

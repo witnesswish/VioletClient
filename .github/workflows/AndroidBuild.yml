@@ -28,11 +28,11 @@ jobs:
       run: |
           pwd
           ls
-          echo "${{ secrets.CLIENT_SSL_KEY_BASE64 }}" | base64 -d > /home/runner/work/VioletClient/VioletClient/resources/certs/client.key
+          echo "${{ secrets.CLIENT_SSL_KEY_BASE64 }}" > /home/runner/work/VioletClient/VioletClient/resources/certs/client.key
           pwd
           ls /home/runner/work/VioletClient/VioletClient/resources/certs
           cat /home/runner/work/VioletClient/VioletClient/resources/certs/client.key
-
+          
     # I don not know, it is neccessary because qt need it, at least at this time
     - name: Fix icu first
       run: |
