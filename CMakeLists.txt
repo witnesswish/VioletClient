@@ -10,8 +10,10 @@ set(RESOURCES
     resources.qrc
 )
 
-#find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network Sql)
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Sql)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network Sql CorePrivate)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Sql CorePrivate)
+
+qt_policy(SET QTP0002 NEW)
 
 qt_standard_project_setup()
 
@@ -35,16 +37,14 @@ qt_add_executable(VioletClient
     usermainwindow.h usermainwindow.cpp usermainwindow.ui
     README.md
     android/AndroidManifest.xml
+    common.h common.cpp
 
 )
 
-target_link_libraries(VioletClient
-    PRIVATE
-    Qt::Core
-    Qt::Widgets
-    Qt::Network
-    Qt::Sql
-)
+target_link_libraries(VioletClient PRIVATE Qt::Core Qt::Widgets Qt::Network Qt::Sql Qt::CorePrivate)
+
+set_property(TARGET VioletClient APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+             ${CMAKE_CURRENT_SOURCE_DIR}/android)
 
 include(GNUInstallDirs)
 include_directories(

@@ -6,6 +6,7 @@
 **/
 #include "violetclient.h"
 #include "ui_violetclient.h"
+#include "common.h"
 
 QMutex VioletClient::logMutex;
 
@@ -165,10 +166,16 @@ void VioletClient::sslErrorHandle(const QList<QSslError> &errors)
 
 void VioletClient::fileMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    QMutexLocker locker(&logMutex); // 线程安全
-    QString externalPublicPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-    QFile file(externalPublicPath+"/VioletClient/app.log");
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+    QMutexLocker locker(&logMutex);
+    QString externalPrivatePath;
+#ifdef Q_OS_ANDROID
+    externalPrivatePath = getAndroidPath(ANDROIDPATH_TYPE::EXTPRIVATE);
+#else
+    externalPrivatePath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+#endif
+    QFile file(externalPrivatePath+"/app.log");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+    {
         return;
     }
 
@@ -176,7 +183,8 @@ void VioletClient::fileMessageHandler(QtMsgType type, const QMessageLogContext &
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
 
     // 根据消息类型添加前缀
-    switch (type) {
+    switch (type)
+    {
     case QtDebugMsg: stream << timestamp << " [DEBUG] "; break;
     case QtInfoMsg: stream << timestamp << " [INFO] "; break;
     case QtWarningMsg: stream << timestamp << " [WARN] "; break;
